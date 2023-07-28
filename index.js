@@ -11,7 +11,8 @@ const PORT = 5000; // Defina a porta que deseja usar
 app.use(express.json());
 
 // Conexão com o MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/onibus', {
+//mongoose.connect('mongodb://127.0.0.1:27017/onibus', {
+mongoose.connect('mongodb+srv://barrobranco:AOU104@onibus.xljsivj.mongodb.net/onibus?retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
