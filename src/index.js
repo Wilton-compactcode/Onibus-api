@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const db = require('./db.js');
 const clientesRouter = require('./clietesController');
 
 
@@ -12,16 +13,16 @@ app.use(express.json());
 
 // Conexão com o MongoDB
 //mongoose.connect('mongodb://127.0.0.1:27017/onibus', {
-mongoose.connect('mongodb+srv://barrobranco:AOU104@onibus.xljsivj.mongodb.net/onibus?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => {
-    console.log('Conexão com o MongoDB estabelecida.');
-  })
-  .catch((err) => {
-    console.error('Erro ao conectar ao MongoDB:', err);
-  });
+// mongoose.connect('mongodb+srv://barrobranco:AOU104@onibus.xljsivj.mongodb.net/onibus?retryWrites=true&w=majority', {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// })
+//   .then(() => {
+//     console.log('Conexão com o MongoDB estabelecida.');
+//   })
+//   .catch((err) => {
+//     console.error('Erro ao conectar ao MongoDB:', err);
+//   });
 
 // Rotas
 app.use('/api', clientesRouter); // Prefixo "/api" para todas as rotas definidas em clientesController
