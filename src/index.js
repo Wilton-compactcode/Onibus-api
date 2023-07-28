@@ -6,7 +6,7 @@ const clientesRouter = require('./clietesController');
 
 
 const app = express();
-const PORT = 5000; // Defina a porta que deseja usar
+const PORT = 443; // Defina a porta que deseja usar
 
 // Middleware para permitir o uso do body parser para interpretar o corpo das requisições
 app.use(express.json());
