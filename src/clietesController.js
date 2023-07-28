@@ -1,22 +1,39 @@
 const router = require('express').Router();
-const mongoose = require('mongoose');
+const { Client } = require('pg');
 
-// Definição do esquema do Item (seu modelo)
-const itemSchema = new mongoose.Schema({
-  name: { type: String, required: true, maxlength: 200 },
-  rg: { type: String, required: true, maxlength: 15 },
-  days: { type: String, required: true, maxlength: 200 },
-  event: { type: String, required: true, maxlength: 100 },
-  observation: { type: String, required: true, maxlength: 200 },
+// Conexão com o banco de dados PostgreSQL
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
-// Modelo Item baseado no esquema
-const Item = mongoose.model('Item', itemSchema);
+// Conexão com o PostgreSQL e criação da tabela "items" (caso ela não exista)
+(async () => {
+  try {
+    await client.connect();
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS items (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        rg VARCHAR(15) NOT NULL,
+        days VARCHAR(200) NOT NULL,
+        event VARCHAR(100) NOT NULL,
+        observation VARCHAR(200) NOT NULL
+      )
+    `;
+    await client.query(createTableQuery);
+  } catch (err) {
+    console.error('Erro ao conectar ao PostgreSQL ou criar a tabela:', err);
+  }
+})();
 
 // Listar todos os itens
 router.get('/items', async (req, res) => {
   try {
-    const items = await Item.find({});
+    const queryResult = await client.query('SELECT * FROM items');
+    const items = queryResult.rows;
     res.json(items);
   } catch (err) {
     res.status(500).json({ message: 'Erro ao obter os itens.' });
@@ -26,7 +43,10 @@ router.get('/items', async (req, res) => {
 // Obter um item específico pelo ID
 router.get('/items/:id', async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id);
+    const itemId = req.params.id;
+    const queryResult = await client.query('SELECT * FROM items WHERE id = $1', [itemId]);
+    const item = queryResult.rows[0];
+
     if (!item) {
       res.status(404).json({ message: 'Item não encontrado.' });
     } else {
@@ -40,12 +60,10 @@ router.get('/items/:id', async (req, res) => {
 // Excluir um item pelo ID
 router.delete('/items/:id', async (req, res) => {
   try {
-    const deletedItem = await Item.findByIdAndDelete(req.params.id);
-    if (!deletedItem) {
-      res.status(404).json({ message: 'Item não encontrado.' });
-    } else {
-      res.json({ message: 'Item excluído com sucesso.' });
-    }
+    const itemId = req.params.id;
+    const deleteQuery = 'DELETE FROM items WHERE id = $1';
+    await client.query(deleteQuery, [itemId]);
+    res.json({ message: 'Item excluído com sucesso.' });
   } catch (err) {
     res.status(500).json({ message: 'Erro ao excluir o item.' });
   }
@@ -53,16 +71,16 @@ router.delete('/items/:id', async (req, res) => {
 
 // Criar um novo item
 router.post('/items', async (req, res) => {
-  const newItem = new Item({
-    name: req.body.name.substring(0, 200),
-    rg: req.body.rg.substring(0, 15),
-    days: req.body.days.substring(0, 200),
-    event: req.body.event.substring(0, 100),
-    observation: req.body.observation.substring(0, 200),
-  });
+  const { name, rg, days, event, observation } = req.body;
+  const insertQuery = `
+    INSERT INTO items (name, rg, days, event, observation)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *
+  `;
 
   try {
-    const savedItem = await newItem.save();
+    const queryResult = await client.query(insertQuery, [name, rg, days, event, observation]);
+    const savedItem = queryResult.rows[0];
     res.json(savedItem);
   } catch (err) {
     res.status(500).json({ message: 'Erro ao salvar o item.' });
@@ -71,20 +89,19 @@ router.post('/items', async (req, res) => {
 
 // Atualizar um item pelo ID
 router.patch('/items/:id', async (req, res) => {
-  const updatedData = {
-    name: req.body.name.substring(0, 200),
-    rg: req.body.rg.substring(0, 15),
-    days: req.body.days.substring(0, 200),
-    event: req.body.event.substring(0, 100),
-    observation: req.body.observation.substring(0, 200),
-  };
+  const itemId = req.params.id;
+  const { name, rg, days, event, observation } = req.body;
+  const updateQuery = `
+    UPDATE items
+    SET name = $1, rg = $2, days = $3, event = $4, observation = $5
+    WHERE id = $6
+    RETURNING *
+  `;
 
   try {
-    const updatedItem = await Item.findByIdAndUpdate(
-      req.params.id,
-      updatedData,
-      { new: true }
-    );
+    const queryResult = await client.query(updateQuery, [name, rg, days, event, observation, itemId]);
+    const updatedItem = queryResult.rows[0];
+
     if (!updatedItem) {
       res.status(404).json({ message: 'Item não encontrado.' });
     } else {
