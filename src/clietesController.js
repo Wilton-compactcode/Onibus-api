@@ -9,10 +9,19 @@ const client = new Client({
   },
 });
 
-// Conexão com o PostgreSQL e criação da tabela "items" (caso ela não exista)
-(async () => {
+// Conexão com o PostgreSQL
+client.connect()
+  .then(() => {
+    console.log('Conectado ao PostgreSQL com sucesso!');
+    createTableIfNotExists();
+  })
+  .catch(err => {
+    console.error('Erro ao conectar ao PostgreSQL:', err);
+  });
+
+// Função para criar a tabela "items" se ela não existir
+const createTableIfNotExists = async () => {
   try {
-    await client.connect();
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS items (
         id SERIAL PRIMARY KEY,
@@ -20,14 +29,15 @@ const client = new Client({
         rg VARCHAR(15) NOT NULL,
         days VARCHAR(200) NOT NULL,
         event VARCHAR(100) NOT NULL,
-        observation VARCHAR(200) NOT NULL
+        observation VARCHAR(200) NULL
       )
     `;
     await client.query(createTableQuery);
+    console.log('Tabela "items" criada ou já existente.');
   } catch (err) {
-    console.error('Erro ao conectar ao PostgreSQL ou criar a tabela:', err);
+    console.error('Erro ao criar a tabela "items":', err);
   }
-})();
+};
 
 // Listar todos os itens
 router.get('/items', async (req, res) => {
